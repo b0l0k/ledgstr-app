@@ -163,33 +163,6 @@ UX_FLOW(ux_display_event_flow,
         &ux_display_approve_step,
         &ux_display_reject_step);
 
-int ui_display_transaction() {
-    if (G_context.req_type != CONFIRM_TRANSACTION || G_context.state != STATE_PARSED) {
-        G_context.state = STATE_NONE;
-        return io_send_sw(SW_BAD_STATE);
-    }
-
-    memset(g_amount, 0, sizeof(g_amount));
-    char amount[30] = {0};
-    if (!format_fpu64(amount,
-                      sizeof(amount),
-                      G_context.tx_info.transaction.value,
-                      EXPONENT_SMALLEST_UNIT)) {
-        return io_send_sw(SW_DISPLAY_AMOUNT_FAIL);
-    }
-    snprintf(g_amount, sizeof(g_amount), "BOL %.*s", sizeof(amount), amount);
-    PRINTF("Amount: %s\n", g_amount);
-
-    memset(g_address, 0, sizeof(g_address));
-    snprintf(g_address, sizeof(g_address), "0x%.*H", ADDRESS_LEN, G_context.tx_info.transaction.to);
-
-    g_validate_callback = &ui_action_validate_transaction;
-
-    ux_flow_init(0, ux_display_transaction_flow, NULL);
-
-    return 0;
-}
-
 int ui_display_event() {
     if (G_context.req_type != CONFIRM_EVENT) {
         return io_send_sw(SW_BAD_STATE);
