@@ -31,10 +31,10 @@
 #include "../crypto.h"
 #include "../common/buffer.h"
 #include "../ui/display.h"
-#include "../helper/send_response.h"
+#include "../ui/action/validate.h"
 
 
-int handler_sign_event(buffer_t *cdata) {
+int handler_sign_event(buffer_t *cdata, bool display) {
 
     if(cdata->size != 32){
         return io_send_sw(SW_WRONG_DATA_LENGTH);
@@ -46,5 +46,9 @@ int handler_sign_event(buffer_t *cdata) {
 
     memmove(G_context.event_info.m_hash, cdata->ptr, cdata->size);
 
-    return ui_display_event();
+    if (display) {
+            return ui_display_event();
+    }
+
+    return validate_event(true);
 }

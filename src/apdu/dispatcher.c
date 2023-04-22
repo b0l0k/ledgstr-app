@@ -62,6 +62,10 @@ int apdu_dispatcher(const command_t *cmd) {
             return handler_get_public_key((bool) cmd->p1);
 
         case SIGN_EVENT:
+            if (cmd->p1 > 1 || cmd->p2 > 0) {
+                return io_send_sw(SW_WRONG_P1P2);
+            }
+
             buf.ptr = cmd->data;
             buf.size = cmd->lc;
             buf.offset = 0;
@@ -69,8 +73,8 @@ int apdu_dispatcher(const command_t *cmd) {
             if (!cmd->data) {
                 return io_send_sw(SW_WRONG_DATA_LENGTH);
             }
-            return handler_sign_event(&buf);
 
+            return handler_sign_event(&buf, (bool) cmd->p1);
         default:
             return io_send_sw(SW_INS_NOT_SUPPORTED);
     }

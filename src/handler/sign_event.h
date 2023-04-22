@@ -7,4 +7,4 @@
 #include "../types.h"
 #include "../common/buffer.h"
 
-int handler_sign_event(buffer_t *cdata);
+int handler_sign_event(buffer_t *cdata, bool display);

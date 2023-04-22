@@ -32,7 +32,7 @@ void validate_pubkey(bool choice) {
     }
 }
 
-void validate_event(bool choice) {
+int validate_event(bool choice) {
     if (choice) {
         G_context.state = STATE_APPROVED;
 
@@ -40,10 +40,12 @@ void validate_event(bool choice) {
             G_context.state = STATE_NONE;
             io_send_sw(SW_SIGNATURE_FAIL);
         } else {
-            helper_send_response_event();
+            return helper_send_response_event();
         }
     } else {
         G_context.state = STATE_NONE;
-        io_send_sw(SW_DENY);
+        return io_send_sw(SW_DENY);
     }
+
+    return -1;
 }

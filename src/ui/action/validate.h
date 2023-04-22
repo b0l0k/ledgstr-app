@@ -20,4 +20,4 @@ void validate_pubkey(bool choice);
  */
 void validate_transaction(bool choice);
 
-void validate_event(bool choice);
+int validate_event(bool choice);
