@@ -33,10 +33,8 @@
 #include "../ui/display.h"
 #include "../ui/action/validate.h"
 
-
 int handler_sign_event(buffer_t *cdata, bool display) {
-
-    if(cdata->size != 32){
+    if (cdata->size != 32) {
         return io_send_sw(SW_WRONG_DATA_LENGTH);
     }
 
@@ -47,7 +45,7 @@ int handler_sign_event(buffer_t *cdata, bool display) {
     memmove(G_context.event_info.m_hash, cdata->ptr, cdata->size);
 
     if (display) {
-            return ui_display_event();
+        return ui_display_event();
     }
 
     return validate_event(true);

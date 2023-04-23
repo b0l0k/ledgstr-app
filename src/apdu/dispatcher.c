@@ -57,7 +57,7 @@ int apdu_dispatcher(const command_t *cmd) {
 
             buf.ptr = cmd->data;
             buf.size = cmd->lc;
-            buf.offset = 0; 
+            buf.offset = 0;
 
             return handler_get_public_key((bool) cmd->p1);
 

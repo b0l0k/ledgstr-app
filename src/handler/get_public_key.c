@@ -33,8 +33,7 @@
 #include "../ui/display.h"
 #include "../helper/send_response.h"
 
-const uint32_t pubdefault_path[] = { 44 | 0x80000000 , 1237 | 0x80000000, 0 | 0x80000000, 0, 0 };
-
+const uint32_t pubdefault_path[] = {44 | 0x80000000, 1237 | 0x80000000, 0 | 0x80000000, 0, 0};
 
 int handler_get_public_key(bool display) {
     explicit_bzero(&G_context, sizeof(G_context));
@@ -49,7 +48,7 @@ int handler_get_public_key(bool display) {
     int error = crypto_derive_private_key(&private_key,
                                           chain_code,
                                           pubdefault_path,
-                                          sizeof(pubdefault_path)/sizeof(pubdefault_path[0]));
+                                          sizeof(pubdefault_path) / sizeof(pubdefault_path[0]));
     if (error != 0) {
         return io_send_sw(error);
     }

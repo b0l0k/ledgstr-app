@@ -40,19 +40,12 @@
 #include "../menu.h"
 
 static action_validate_cb g_validate_callback;
-static char g_amount[30];
 static char g_address[64];
 static char g_event[65];
 
 // Validate/Invalidate public key and go back to home
 static void ui_action_validate_pubkey(bool choice) {
     validate_pubkey(choice);
-    ui_menu_main();
-}
-
-// Validate/Invalidate transaction and go back to home
-static void ui_action_validate_transaction(bool choice) {
-    validate_transaction(choice);
     ui_menu_main();
 }
 
@@ -128,13 +121,6 @@ UX_STEP_NOCB(ux_display_review_step,
                  "Review",
                  "Event Hash",
              });
-// Step with title/text for amount
-UX_STEP_NOCB(ux_display_amount_step,
-             bnnn_paging,
-             {
-                 .title = "Amount",
-                 .text = g_amount,
-             });
 
 UX_STEP_NOCB(ux_display_event_step,
              bnnn_paging,
@@ -170,6 +156,5 @@ int ui_display_event() {
 
     return 0;
 }
-
 
 #endif
