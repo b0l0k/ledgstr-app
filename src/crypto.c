@@ -23,8 +23,7 @@
 
 #include "globals.h"
 
-const uint32_t default_path[] = { 44 | 0x80000000 , 1237 | 0x80000000, 0 | 0x80000000, 0, 0 };
-
+const uint32_t default_path[] = {44 | 0x80000000, 1237 | 0x80000000, 0 | 0x80000000, 0, 0};
 
 int crypto_derive_private_key(cx_ecfp_private_key_t *private_key,
                               uint8_t chain_code[static 32],
@@ -78,7 +77,7 @@ int crypto_sign_message(void) {
     int error = crypto_derive_private_key(&private_key,
                                           chain_code,
                                           default_path,
-                                          sizeof(default_path)/sizeof(default_path[0]));
+                                          sizeof(default_path) / sizeof(default_path[0]));
     if (error != 0) {
         return error;
     }
@@ -106,7 +105,7 @@ int crypto_sign_message(void) {
 
     if (error == 0) {
         G_context.tx_info.signature_len = sig_len;
-        G_context.tx_info.v = (uint8_t)(info & CX_ECCINFO_PARITY_ODD);
+        G_context.tx_info.v = (uint8_t) (info & CX_ECCINFO_PARITY_ODD);
     }
 
     return error;
@@ -116,7 +115,7 @@ int crypto_sign_event(void) {
     cx_ecfp_private_key_t private_key = {0};
     uint8_t chain_code[32] = {0};
     uint32_t info = 0;
-    
+
     uint8_t sig[64 + 1];  // extra byte for the appended sighash-type, possibly
     size_t sig_len = 0;
 
@@ -124,21 +123,20 @@ int crypto_sign_event(void) {
     int error = crypto_derive_private_key(&private_key,
                                           chain_code,
                                           default_path,
-                                          sizeof(default_path)/sizeof(default_path[0]));
+                                          sizeof(default_path) / sizeof(default_path[0]));
     if (error != 0) {
         return error;
     }
 
     BEGIN_TRY {
         TRY {
-
             error = cx_ecschnorr_sign_no_throw(&private_key,
-                                         CX_ECSCHNORR_BIP0340 | CX_RND_TRNG,
-                                         CX_SHA256,
-                                         G_context.event_info.m_hash,
-                                         32,
-                                         sig,
-                                         &sig_len);
+                                               CX_ECSCHNORR_BIP0340 | CX_RND_TRNG,
+                                               CX_SHA256,
+                                               G_context.event_info.m_hash,
+                                               32,
+                                               sig,
+                                               &sig_len);
 
             memmove(G_context.event_info.signature, sig, sig_len);
             G_context.event_info.signature_len = sig_len;
@@ -156,7 +154,7 @@ int crypto_sign_event(void) {
 
     if (error == 0) {
         G_context.tx_info.signature_len = sig_len;
-        G_context.tx_info.v = (uint8_t)(info & CX_ECCINFO_PARITY_ODD);
+        G_context.tx_info.v = (uint8_t) (info & CX_ECCINFO_PARITY_ODD);
     }
 
     return error;

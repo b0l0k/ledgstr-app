@@ -7,7 +7,6 @@
 #include "transaction/types.h"
 #include "common/bip32.h"
 
-
 /**
  * Enumeration for the status of IO.
  */
@@ -24,7 +23,6 @@ typedef enum {
     GET_VERSION = 0x03,     /// version of the application
     GET_APP_NAME = 0x04,    /// name of the application
     GET_PUBLIC_KEY = 0x05,  /// public key of corresponding BIP32 path
-    SIGN_TX = 0x06,          /// sign transaction with BIP32 path
     SIGN_EVENT = 0x07
 } command_e;
 
@@ -53,7 +51,7 @@ typedef enum {
  * Enumeration with user request type.
  */
 typedef enum {
-    CONFIRM_ADDRESS,     /// confirm address derived from public key
+    CONFIRM_ADDRESS,      /// confirm address derived from public key
     CONFIRM_TRANSACTION,  /// confirm transaction information
     CONFIRM_EVENT
 } request_type_e;
@@ -79,9 +77,9 @@ typedef struct {
 } transaction_ctx_t;
 
 typedef struct {
-    uint8_t m_hash[32];                   /// message hash digest
-    uint8_t signature[MAX_DER_SIG_LEN];   /// transaction signature encoded in DER
-    uint8_t signature_len;                /// length of transaction signature
+    uint8_t m_hash[32];                  /// message hash digest
+    uint8_t signature[MAX_DER_SIG_LEN];  /// transaction signature encoded in DER
+    uint8_t signature_len;               /// length of transaction signature
 } event_ctx_t;
 
 /**
@@ -94,5 +92,5 @@ typedef struct {
         transaction_ctx_t tx_info;  /// transaction context
         event_ctx_t event_info;
     };
-    request_type_e req_type;              /// user request
+    request_type_e req_type;  /// user request
 } global_ctx_t;

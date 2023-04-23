@@ -112,7 +112,6 @@ int ui_display_address() {
         return io_send_sw(SW_DISPLAY_ADDRESS_FAIL);
     }
 
-    //strcpy(g_address, address);
     snprintf(g_address, sizeof(g_address), "%s", address);
 
     g_validate_callback = &ui_action_validate_pubkey;
@@ -144,18 +143,12 @@ UX_STEP_NOCB(ux_display_event_step,
                  .text = g_event,
              });
 
-// FLOW to display transaction information:
+// FLOW to display event hash information:
 // #1 screen : eye icon + "Review Transaction"
 // #2 screen : display amount
 // #3 screen : display destination address
 // #4 screen : approve button
 // #5 screen : reject button
-UX_FLOW(ux_display_transaction_flow,
-        &ux_display_review_step,
-        &ux_display_address_step,
-        &ux_display_amount_step,
-        &ux_display_approve_step,
-        &ux_display_reject_step);
 
 UX_FLOW(ux_display_event_flow,
         &ux_display_review_step,
