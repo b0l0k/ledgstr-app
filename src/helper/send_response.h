@@ -3,6 +3,7 @@
 #include "os.h"
 
 #include "../common/macros.h"
+#include "buffer.h"
 
 /**
  * Length of public key.
@@ -12,3 +13,7 @@
 int helper_send_response_pubkey(void);
 
 int helper_send_response_event(void);
+
+int io_send_framed_response(const buffer_t *rdata);
+
+int io_send_framed_response_continue(void);

@@ -29,6 +29,8 @@
 #include "../handler/get_app_name.h"
 #include "../handler/get_public_key.h"
 #include "../handler/sign_event.h"
+#include "../handler/encrypt_data.h"
+#include "../helper/send_response.h"
 
 int apdu_dispatcher(const command_t *cmd) {
     if (cmd->cla != CLA) {
@@ -75,6 +77,43 @@ int apdu_dispatcher(const command_t *cmd) {
             }
 
             return handler_sign_event(&buf, (bool) cmd->p1);
+        case ENCRYPT_DATA:
+            if ((cmd->p1 == P1_START && cmd->p2 != P2_MORE) || cmd->p1 > P1_MAX ||
+                (cmd->p2 != P2_LAST && cmd->p2 != P2_MORE)) {
+                return io_send_sw(SW_WRONG_P1P2);
+            }
+            buf.ptr = cmd->data;
+            buf.size = cmd->lc;
+            buf.offset = 0;
+
+            if (!cmd->data) {
+                return io_send_sw(SW_WRONG_DATA_LENGTH);
+            }
+
+            return handler_encrypt(&buf, cmd->p1, (bool) (cmd->p2 & P2_MORE), false);
+        case DECRYPT_DATA:
+            if ((cmd->p1 == P1_START && cmd->p2 != P2_MORE) || cmd->p1 > P1_MAX ||
+                (cmd->p2 != P2_LAST && cmd->p2 != P2_MORE)) {
+                return io_send_sw(SW_WRONG_P1P2);
+            }
+            buf.ptr = cmd->data;
+            buf.size = cmd->lc;
+            buf.offset = 0;
+
+            if (!cmd->data) {
+                return io_send_sw(SW_WRONG_DATA_LENGTH);
+            }
+
+            return handler_decrypt(&buf, cmd->p1, (bool) (cmd->p2 & P2_MORE), false);
+        case GET_RESPONSE:
+            if (cmd->p1 != 0x00 || cmd->p2 != 0x00) return io_send_sw(SW_WRONG_P1P2);
+
+            buf.ptr = cmd->data;
+            buf.size = cmd->lc;
+            buf.offset = 0;
+
+            return handler_get_response();
+
         default:
             return io_send_sw(SW_INS_NOT_SUPPORTED);
     }

@@ -26,15 +26,18 @@ Combined with the [Chrome extension](https://github.com/vbouzon/ledgstr-extensio
  - Ledger Nano S - USB - Tested
  - Ledger Nano X - USB - Not tested
 
+### Limitations
+Due to device memory limits, the app can only manage
+
 ## Key principles
- - Use [BIP-44](https://github.com/bitcoin/bips/blob/master/bip-0044.mediawiki) & [SLIP-44](https://github.com/satoshilabs/slips/blob/master/slip-0044.md) for key generation (/44'/1237'/0')
+ - Use [BIP-44](https://github.com/bitcoin/bips/blob/master/bip-0044.mediawiki) & [SLIP-44](https://github.com/satoshilabs/slips/blob/master/slip-0044.md) for key generation (/44'/1237'/0'/0/0)
 
 
 # Roadmap
 
 - [x] Key generation, based on [BIP-44](https://github.com/bitcoin/bips/blob/master/bip-0044.mediawiki) & [SLIP-44](https://github.com/satoshilabs/slips/blob/master/slip-0044.md)
 - [x] Event signing with hash verification (optional)
-- [ ] Direct message with NIP-04
+- [x] Direct message with NIP-04 (see limitations)
 - [ ] Test with Ledger Nano X on USB
 - [ ] Nano X bluethooth support
 - [ ] Slax support
@@ -44,13 +47,15 @@ Combined with the [Chrome extension](https://github.com/vbouzon/ledgstr-extensio
 
 ```sh
 sudo docker run --rm -ti -v "$(realpath .):/app" --user $(id -u $USER):$(id -g $USER) ghcr.io/ledgerhq/ledger-app-builder/ledger-app-builder:latest
+
+make
 ```
 
 ## Install
 
 
 ```sh
-python3 -m ledgerblue.loadApp --curve secp256k1 --appFlags 0x000 --path "44'/1237'" --tlv --targetId 0x31100004 --targetVersion="2.1.0" --delete --fileName bin/app.hex --appName "Boilerplate" --appVersion "1.0.1" --dataSize $((0x`cat debug/app.map |grep _envram_data | tr -s ' ' | cut -f2 -d' '|cut -f2 -d'x'` - 0x`cat debug/app.map |grep _nvram_data | tr -s ' ' | cut -f2 -d' '|cut -f2 -d'x'`)) `ICONHEX=\`python3 /opt/nanos-secure-sdk/icon3.py --hexbitmaponly icons/nanos_app_boilerplate.gif  2>/dev/null\` ; [ ! -z "$ICONHEX" ] && echo "--icon $ICONHEX"` 
+python3 -m ledgerblue.loadApp --curve secp256k1 --appFlags 0x000 --path "44'/1237'" --tlv --targetId 0x31100004 --targetVersion="2.1.0" --delete --fileName bin/app.hex --appName "Ledgstr" --appVersion "1.0.1" --dataSize $((0x`cat debug/app.map |grep _envram_data | tr -s ' ' | cut -f2 -d' '|cut -f2 -d'x'` - 0x`cat debug/app.map |grep _nvram_data | tr -s ' ' | cut -f2 -d' '|cut -f2 -d'x'`)) `ICONHEX=\`python3 /opt/nanos-secure-sdk/icon3.py --hexbitmaponly icons/nanos_app_boilerplate.gif  2>/dev/null\` ; [ ! -z "$ICONHEX" ] && echo "--icon $ICONHEX"` 
 ```
 
 

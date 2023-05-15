@@ -4,161 +4,462 @@ from application_client.boilerplate_response_unpacker import unpack_get_public_k
 from ragger.backend import RaisePolicy
 from ragger.navigator import NavInsID
 from utils import ROOT_SCREENSHOT_PATH, check_signature_validity
+from typing import Tuple, Optional
+from binascii import unhexlify
+import hashlib
+import os
 
-# In this tests we check the behavior of the device when asked to sign a transaction
+# Elliptic curve parameters
+p = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFC2F
+n = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141
+G = (0x79BE667EF9DCBBAC55A06295CE870B07029BFCDB2DCE28D959F2815B16F81798,
+     0x483ADA7726A3C4655DA4FBFC0E1108A8FD17B448A68554199C47D08FFB10D4B8)
+
+# Points are tuples of X and Y coordinates
+# the point at infinity is represented by the None keyword
+Point = Tuple[int, int]
 
 
-# # In this test se send to the device a transaction to sign and validate it on screen
-# # The transaction is short and will be sent in one chunk
-# # We will ensure that the displayed information is correct by using screenshots comparison
-# def test_sign_tx_short_tx(firmware, backend, navigator, test_name):
-#     # Use the app interface instead of raw interface
-#     client = BoilerplateCommandSender(backend)
-#     # The path used for this entire test
-#     path: str = "m/44'/0'/0'/0/0"
+# Get bytes from an int
+def bytes_from_int(a: int) -> bytes:
+    return a.to_bytes(32, byteorder="big")
 
-#     # First we need to get the public key of the device in order to build the transaction
-#     rapdu = client.get_public_key(path=path)
-#     _, public_key, _, _ = unpack_get_public_key_response(rapdu.data)
 
-#     # Create the transaction that will be sent to the device for signing
-#     transaction = Transaction(
-#         nonce=1,
-#         to="0xde0b295669a9fd93d5f28d9ec85e40f4cb697bae",
-#         value=666,
-#         memo="For u EthDev"
-#     ).serialize()
+# Get bytes from a hex
+def bytes_from_hex(a: hex) -> bytes:
+    return unhexlify(a)
 
-#     # Send the sign device instruction.
-#     # As it requires on-screen validation, the function is asynchronous.
-#     # It will yield the result when the navigation is done
-#     with client.sign_tx(path=path, transaction=transaction):
-#         # Validate the on-screen request by performing the navigation appropriate for this device
-#         if firmware.device.startswith("nano"):
-#             navigator.navigate_until_text_and_compare(NavInsID.RIGHT_CLICK,
-#                                                       [NavInsID.BOTH_CLICK],
-#                                                       "Approve",
-#                                                       ROOT_SCREENSHOT_PATH,
-#                                                       test_name)
-#         else:
-#             navigator.navigate_until_text_and_compare(NavInsID.USE_CASE_REVIEW_TAP,
-#                                                       [NavInsID.USE_CASE_REVIEW_CONFIRM,
-#                                                        NavInsID.USE_CASE_STATUS_DISMISS],
-#                                                       "Hold to sign",
-#                                                       ROOT_SCREENSHOT_PATH,
-#                                                       test_name)
 
-#     # The device as yielded the result, parse it and ensure that the signature is correct
-#     response = client.get_async_response().data
-#     _, der_sig, _ = unpack_sign_tx_response(response)
-#     assert check_signature_validity(public_key, der_sig, transaction)
+# Get bytes from a point
+def bytes_from_point(P: Point) -> bytes:
+    return bytes_from_int(x(P))
+
+
+# Get an int from bytes
+def int_from_bytes(b: bytes) -> int:
+    return int.from_bytes(b, byteorder="big")
+
+
+# Get an int from hex
+def int_from_hex(a: hex) -> int:
+    return int.from_bytes(unhexlify(a), byteorder="big")
+
+
+# Get x coordinate from a point
+def x(P: Point) -> int:
+    return P[0]
+
+
+# Get y coordinate from a point
+def y(P: Point) -> int:
+    return P[1]
+
+
+# Point addition
+def point_add(P1: Optional[Point], P2: Optional[Point]) -> Optional[Point]:
+    if P1 is None:
+        return P2
+    if P2 is None:
+        return P1
+    if (x(P1) == x(P2)) and (y(P1) != y(P2)):
+        return None
+    if P1 == P2:
+        lam = (3 * x(P1) * x(P1) * pow(2 * y(P1), p - 2, p)) % p
+    else:
+        lam = ((y(P2) - y(P1)) * pow(x(P2) - x(P1), p - 2, p)) % p
+    x3 = (lam * lam - x(P1) - x(P2)) % p
+    return x3, (lam * (x(P1) - x3) - y(P1)) % p
+
+
+# Point multiplication
+def point_mul(P: Optional[Point], d: int) -> Optional[Point]:
+    R = None
+    for i in range(256):
+        if (d >> i) & 1:
+            R = point_add(R, P)
+        P = point_add(P, P)
+    return R
+
+
+# Note:
+# This implementation can be sped up by storing the midstate
+# after hashing tag_hash instead of rehashing it all the time
+# Get the hash digest of (tag_hashed || tag_hashed || message)
+def tagged_hash(tag: str, msg: bytes) -> bytes:
+    tag_hash = hashlib.sha256(tag.encode()).digest()
+    return hashlib.sha256(tag_hash + tag_hash + msg).digest()
+
+
+# Check if a point is at infinity
+def is_infinity(P: Optional[Point]) -> bool:
+    return P is None
+
+
+# Get xor of bytes
+def xor_bytes(b0: bytes, b1: bytes) -> bytes:
+    return bytes(a ^ b for (a, b) in zip(b0, b1))
+
+
+# Get a point from bytes
+def lift_x_square_y(b: bytes) -> Optional[Point]:
+    x = int_from_bytes(b)
+    if x >= p:
+        return None
+    y_sq = (pow(x, 3, p) + 7) % p
+    y = pow(y_sq, (p + 1) // 4, p)
+    if pow(y, 2, p) != y_sq:
+        return None
+    return x, y
+
+
+def lift_x_even_y(b: bytes) -> Optional[Point]:
+    P = lift_x_square_y(b)
+    if P is None:
+        return None
+    else:
+        return x(P), y(P) if y(P) % 2 == 0 else p - y(P)
+
+
+# Get hash digest with SHA256
+def sha256(b: bytes) -> bytes:
+    return hashlib.sha256(b).digest()
+
+
+# Check if an int is square
+def is_square(a: int) -> bool:
+    return int(pow(a, (p - 1) // 2, p)) == 1
+
+
+# Check if a point has square y coordinate
+def has_square_y(P: Optional[Point]) -> bool:
+    infinity = is_infinity(P)
+    if infinity:
+        return False
+    assert P is not None
+    return is_square(y(P))
+
+
+# Check if a point has even y coordinate
+def has_even_y(P: Point) -> bool:
+    return y(P) % 2 == 0
+
+
+# Generate public key from an int
+def pubkey_gen_from_int(seckey: int) -> bytes:
+    P = point_mul(G, seckey)
+    assert P is not None
+    return bytes_from_point(P)
+
+
+# Generate public key from a hex
+def pubkey_gen_from_hex(seckey: hex) -> bytes:
+    seckey = bytes.fromhex(seckey)
+    d0 = int_from_bytes(seckey)
+    if not (1 <= d0 <= n - 1):
+        raise ValueError(
+            'The secret key must be an integer in the range 1..n-1.')
+    P = point_mul(G, d0)
+    assert P is not None
+    return bytes_from_point(P)
+
+
+# Generate public key (as a point) from an int
+def pubkey_point_gen_from_int(seckey: int) -> Point:
+    P = point_mul(G, seckey)
+    assert P is not None
+    return P
+
+
+# Generate auxiliary random of 32 bytes
+def get_aux_rand() -> bytes:
+    return os.urandom(32)
+
+
+# Extract R_x int value from signature
+def get_int_R_from_sig(sig: bytes) -> int:
+    return int_from_bytes(sig[0:32])
+
+
+# Extract s int value from signature
+def get_int_s_from_sig(sig: bytes) -> int:
+    return int_from_bytes(sig[32:64])
+
+
+# Extract R_x bytes from signature
+def get_bytes_R_from_sig(sig: bytes) -> int:
+    return sig[0:32]
+
+
+# Extract s bytes from signature
+def get_bytes_s_from_sig(sig: bytes) -> int:
+    return sig[32:64]
+
+
+# Generate Schnorr signature
+def schnorr_sign(msg: bytes, privateKey: str) -> bytes:
+    if len(msg) != 32:
+        raise ValueError('The message must be a 32-byte array.')
+    d0 = int_from_hex(privateKey)
+    if not (1 <= d0 <= n - 1):
+        raise ValueError(
+            'The secret key must be an integer in the range 1..n-1.')
+    P = point_mul(G, d0)
+    assert P is not None
+    d = d0 if has_even_y(P) else n - d0
+    t = xor_bytes(bytes_from_int(d), tagged_hash("BIP0340/aux", get_aux_rand()))
+    k0 = int_from_bytes(tagged_hash("BIP0340/nonce", t + bytes_from_point(P) + msg)) % n
+    if k0 == 0:
+        raise RuntimeError('Failure. This happens only with negligible probability.')
+    R = point_mul(G, k0)
+    assert R is not None
+    k = n - k0 if not has_even_y(R) else k0
+    e = int_from_bytes(tagged_hash("BIP0340/challenge",
+                       bytes_from_point(R) + bytes_from_point(P) + msg)) % n
+    sig = bytes_from_point(R) + bytes_from_int((k + e * d) % n)
+
+    if not schnorr_verify(msg, bytes_from_point(P), sig):
+        raise RuntimeError('The created signature does not pass verification.')
+    return sig
+
+
+# Verify Schnorr signature
+def schnorr_verify(msg: bytes, pubkey: bytes, sig: bytes) -> bool:
+    if len(msg) != 32:
+        raise ValueError('The message must be a 32-byte array.')
+    if len(pubkey) != 32:
+        raise ValueError('The public key must be a 32-byte array.' + str(len(pubkey)))
+    if len(sig) != 64:
+        raise ValueError('The signature must be a 64-byte array.')
+    P = lift_x_even_y(pubkey)
+    r = get_int_R_from_sig(sig)
+    s = get_int_s_from_sig(sig)
+    if (P is None) or (r >= p) or (s >= n):
+        return False
+    e = int_from_bytes(tagged_hash("BIP0340/challenge",
+                       get_bytes_R_from_sig(sig) + pubkey + msg)) % n
+    R = point_add(point_mul(G, s), point_mul(P, n - e))
+    if (R is None) or (not has_even_y(R)):
+        # print("Please, recompute the sign. R is None or has even y")
+        return False
+    if x(R) != r:
+        # print("There's something wrong")
+        return False
+    return True
+
+
+# Generate Schnorr MuSig signature
+def schnorr_musig_sign(msg: bytes, users: list) -> bytes:
+    if len(msg) != 32:
+        raise ValueError('The message must be a 32-byte array.')
+
+    # Key aggregation (KeyAgg), L = h(P1 || ... || Pn)
+    L = b''
+    for u in users:
+        L += pubkey_gen_from_hex(u["privateKey"])
+    L = sha256(L)
+
+    Rsum = None
+    X = None
+    for u in users:
+        # Get private key di and public key Pi
+        di = int_from_hex(u["privateKey"])
+        if not (1 <= di <= n - 1):
+            raise ValueError('The secret key must be an integer in the range 1..n-1.')
+        Pi = pubkey_point_gen_from_int(di)
+        assert Pi is not None
+
+        # KeyAggCoef
+        # ai = h(L||Pi)
+        ai = int_from_bytes(sha256(L + bytes_from_point(Pi)))
+        u["ai"] = ai
+
+        # Computation of X~
+        # X~ = X1 + ... + Xn, Xi = ai * Pi
+        X = point_add(X, point_mul(Pi, ai))
+
+        # Random ki with tagged hash
+        t = xor_bytes(bytes_from_int(di), tagged_hash("BIP0340/aux", get_aux_rand()))
+        ki = int_from_bytes(tagged_hash("BIP0340/nonce", t + bytes_from_point(Pi) + msg)) % n
+        if ki == 0:
+            raise RuntimeError('Failure. This happens only with negligible probability.')
+
+        # Ri = ki * G
+        Ri = point_mul(G, ki)
+        assert Ri is not None
+
+        # Rsum = R1 + ... + Rn
+        Rsum = point_add(Rsum, Ri)
+        u["ki"] = ki
+
+    # The aggregate public key X~ needs to be y-even
+    if not has_even_y(X):
+        for i, u in enumerate(users):
+            users[i]["ai"] = n - u["ai"]
+
+    # If the aggregated nonce does not have an even Y
+    # then negate  individual nonce scalars (and the aggregate nonce)
+    if not has_even_y(Rsum):
+        for i, u in enumerate(users):
+            users[i]["ki"] = n - u["ki"]
+
+    # c = hash( Rsum || X || M )
+    c = int_from_bytes(tagged_hash("BIP0340/challenge",
+                       (bytes_from_point(Rsum) + bytes_from_point(X) + msg))) % n
+
+    sSum = 0
+    for u in users:
+        # Get private key di
+        di = int_from_hex(u["privateKey"])
+
+        # sSum = s1 + ... + sn,  # si = ki + di * c * ai mod n
+        sSum += (di * c * u["ai"] + u["ki"]) % n
+    sSum = sSum % n
+
+    signature_bytes = bytes_from_point(Rsum) + bytes_from_int(sSum)
+
+    if not schnorr_verify(msg, bytes_from_point(X), signature_bytes):
+        raise RuntimeError('The created signature does not pass verification.')
+    return signature_bytes, bytes_from_point(X)
+
+
+# Generate Schnorr MuSig2 signature
+def schnorr_musig2_sign(msg: bytes, users: list) -> bytes:
+    if len(msg) != 32:
+        raise ValueError('The message must be a 32-byte array.')
+
+    nu = 2
+
+    # Key aggregation (KeyAgg), L = h(P1 || ... || Pn)
+    L = b''
+    for u in users:
+        L += pubkey_gen_from_hex(u["privateKey"])
+    L = sha256(L)
+
+    X = None
+    for u in users:
+        # Get private key di and public key Pi
+        di = int_from_hex(u["privateKey"])
+        if not (1 <= di <= n - 1):
+            raise ValueError('The secret key must be an integer in the range 1..n-1.')
+        Pi = pubkey_point_gen_from_int(di)
+        assert Pi is not None
+
+        # KeyAggCoef
+        # ai = h(L||Pi)
+        ai = int_from_bytes(sha256(L + bytes_from_point(Pi)))
+        u["ai"] = ai
+
+        # Computation of X~
+        # X~ = X1 + ... + Xn, Xi = ai * Pi
+        X = point_add(X, point_mul(Pi, ai))
+
+        # First signing round (Sign and SignAgg)
+        r_list = []
+        R_list = []
+
+        for j in range(nu):
+            # Random r with tagged hash
+            t = xor_bytes(bytes_from_int(di), tagged_hash("BIP0340/aux", get_aux_rand()))
+            r = int_from_bytes(tagged_hash("BIP0340/nonce", t + bytes_from_point(Pi) + msg)) % n
+            if r == 0:
+                raise RuntimeError('Failure. This happens only with negligible probability.')
+
+            # Ri,j = ri,j * G (i represents the user)
+            Rij = point_mul(G, r)
+            assert Rij is not None
+
+            r_list.append(r)
+            R_list.append(Rij)
+        u["r_list"] = r_list
+        u["R_list"] = R_list
+
+    # SignAgg
+    # for each j in {1 .. nu} aggregator compute Rj as sum of Rij  (where i goes
+    # from 1 to n, and n is the number of user, while j is fixed for each round)
+    # Rj is a set, where its size is nu
+    Rj_list = []
+    for j in range(nu):
+        Rj_list.append(None)
+        for u in users:
+            Rj_list[j] = point_add(Rj_list[j], u["R_list"][j])
+
+    # Second signing round (Sign', SignAgg', Sign'')
+    # Sign'
+    Rbytes = b''
+    for Rj in Rj_list:
+        Rbytes += bytes_from_point(Rj)
+
+    # b = h(R1 || ... || Rn || X || M)
+    b = sha256(Rbytes + bytes_from_point(X) + msg)
+
+    Rsum = None
+    for j, Rj in enumerate(Rj_list):
+        # Rsum = SUM (Rj * b^(j))  (Rsum is R in the paper)
+        Rsum = point_add(Rsum, point_mul(Rj, int_from_bytes(b) ** j))
+    assert Rsum is not None
+
+    # The aggregate public key X~ needs to be y-even
+    if not has_even_y(X):
+        for i, u in enumerate(users):
+            users[i]["ai"] = n - u["ai"]
+
+    # If the aggregated nonce does not have an even Y
+    # then negate  individual nonce scalars (and the aggregate nonce)
+    if not has_even_y(Rsum):
+        for i, u in enumerate(users):
+            for j, r in enumerate(users[i]["r_list"]):
+                users[i]["r_list"][j] = n - users[i]["r_list"][j]
+
+    # c = hash( Rsum || X || M )
+    c = int_from_bytes(tagged_hash("BIP0340/challenge",
+                       (bytes_from_point(Rsum) + bytes_from_point(X) + msg))) % n
+
+    # SignAgg' step
+    sSum = 0
+    for u in users:
+        # Get private key di
+        di = int_from_hex(u["privateKey"])
+
+        rb = 0
+        for j in range(nu):
+            rb += u["r_list"][j] * int_from_bytes(b)**j
+
+        # ssum = s1 + ... + sn, si = (c*ai*di + r) % n
+        sSum += (di * c * u["ai"] + rb) % n
+    sSum = sSum % n
+
+    signature_bytes = bytes_from_point(Rsum) + bytes_from_int(sSum)
+
+    if not schnorr_verify(msg, bytes_from_point(X), signature_bytes):
+        raise RuntimeError('The created signature does not pass verification.')
+    return signature_bytes, bytes_from_point(X)
+
 
 def test_sign_event(firmware, backend, navigator, test_name):
-    ## 30203dc55d95cfacfead86cd7660759fbfe4b9685d8acba9b21aab533f196c24
-    ## c04599c035a1df986643e61d900dd7d3551ea71c709eab32b90a835b38a9aaafa859bdc43cb0c8c46416f57183ac46bf5e2584f365c513f82a0072f8e98a7212
     # Use the app interface instead of raw interface
     client = BoilerplateCommandSender(backend)
+
+    rapdu = client.get_public_key()
+    _, public_key = unpack_get_public_key_response(rapdu.data)
+    hash = bytes.fromhex("8b07696a26964c6c1f59fb5a7641a201e3f45dfe91a4f89f98c146989cd7ac51")
     # The path used for this entire test
 
     # Send the sign device instruction.
     # As it requires on-screen validation, the function is asynchronous.
     # It will yield the result when the navigation is done
-    with client.sign_event(hash=bytes.fromhex("8b07696a26964c6c1f59fb5a7641a201e3f45dfe91a4f89f98c146989cd7ac51")):
+    with client.sign_event(hash=hash):
         # Validate the on-screen request by performing the navigation appropriate for this device
         if firmware.device.startswith("nano"):
             navigator.navigate_until_text(NavInsID.RIGHT_CLICK,
-                                                      [NavInsID.BOTH_CLICK],
-                                                      "Approve")
+                                          [NavInsID.BOTH_CLICK],
+                                          "Approve")
         else:
             navigator.navigate_until_text(NavInsID.USE_CASE_REVIEW_TAP,
-                                                      [NavInsID.USE_CASE_REVIEW_CONFIRM,
-                                                       NavInsID.USE_CASE_STATUS_DISMISS],
-                                                      "Hold to sign")
+                                          [NavInsID.USE_CASE_REVIEW_CONFIRM,
+                                           NavInsID.USE_CASE_STATUS_DISMISS],
+                                          "Hold to sign")
 
     # The device as yielded the result, parse it and ensure that the signature is correct
     response = client.get_async_response().data
     _, der_sig = unpack_sign_event_response(response)
-    # assert check_signature_validity(public_key, der_sig, transaction)
-    raise ValueError(der_sig.hex())
-    assert der_sig == bytes.fromhex("c04599c035a1df986643e61d900dd7d3551ea71c709eab32b90a835b38a9aaafa859bdc43cb0c8c46416f57183ac46bf5e2584f365c513f82a0072f8e98a7212")
-
-# # In this test se send to the device a transaction to sign and validate it on screen
-# # This test is mostly the same as the previous one but with different values.
-# # In particular the long memo will force the transaction to be sent in multiple chunks
-# def test_sign_tx_long_tx(firmware, backend, navigator, test_name):
-#     # Use the app interface instead of raw interface
-#     client = BoilerplateCommandSender(backend)
-#     path: str = "m/44'/0'/0'/0/0"
-
-#     rapdu = client.get_public_key(path=path)
-#     _, public_key, _, _ = unpack_get_public_key_response(rapdu.data)
-
-#     transaction = Transaction(
-#         nonce=1,
-#         to="0xde0b295669a9fd93d5f28d9ec85e40f4cb697bae",
-#         value=666,
-#         memo=("This is a very long memo. "
-#               "It will force the app client to send the serialized transaction to be sent in chunk. "
-#               "As the maximum chunk size is 255 bytes we will make this memo greater than 255 characters. "
-#               "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed non risus. Suspendisse lectus tortor, dignissim sit amet, adipiscing nec, ultricies sed, dolor. Cras elementum ultrices diam.")
-#     ).serialize()
-
-#     with client.sign_tx(path=path, transaction=transaction):
-#         if firmware.device.startswith("nano"):
-#             navigator.navigate_until_text_and_compare(NavInsID.RIGHT_CLICK,
-#                                                       [NavInsID.BOTH_CLICK],
-#                                                       "Approve",
-#                                                       ROOT_SCREENSHOT_PATH,
-#                                                       test_name)
-#         else:
-#             navigator.navigate_until_text_and_compare(NavInsID.USE_CASE_REVIEW_TAP,
-#                                                       [NavInsID.USE_CASE_REVIEW_CONFIRM,
-#                                                        NavInsID.USE_CASE_STATUS_DISMISS],
-#                                                       "Hold to sign",
-#                                                       ROOT_SCREENSHOT_PATH,
-#                                                       test_name)
-#     response = client.get_async_response().data
-#     _, der_sig, _ = unpack_sign_tx_response(response)
-#     assert check_signature_validity(public_key, der_sig, transaction)
-
-
-# # Transaction signature refused test
-# # The test will ask for a transaction signature that will be refused on screen
-# def test_sign_tx_refused(firmware, backend, navigator, test_name):
-#     # Use the app interface instead of raw interface
-#     client = BoilerplateCommandSender(backend)
-#     path: str = "m/44'/0'/0'/0/0"
-
-#     rapdu = client.get_public_key(path=path)
-#     _, pub_key, _, _ = unpack_get_public_key_response(rapdu.data)
-
-#     transaction = Transaction(
-#         nonce=1,
-#         to="0xde0b295669a9fd93d5f28d9ec85e40f4cb697bae",
-#         value=666,
-#         memo="This transaction will be refused by the user"
-#     ).serialize()
-
-#     if firmware.device.startswith("nano"):
-#         with client.sign_tx(path=path, transaction=transaction):
-#             # Disable raising when trying to unpack an error APDU
-#             backend.raise_policy = RaisePolicy.RAISE_NOTHING
-#             navigator.navigate_until_text_and_compare(NavInsID.RIGHT_CLICK,
-#                                                       [NavInsID.BOTH_CLICK],
-#                                                       "Reject",
-#                                                       ROOT_SCREENSHOT_PATH,
-#                                                       test_name)
-
-#         assert client.get_async_response().status == Errors.SW_DENY
-#     else:
-#         for i in range(3):
-#             instructions = [NavInsID.USE_CASE_REVIEW_TAP] * i
-#             instructions += [NavInsID.USE_CASE_REVIEW_REJECT,
-#                              NavInsID.USE_CASE_CHOICE_CONFIRM,
-#                              NavInsID.USE_CASE_STATUS_DISMISS]
-#             with client.sign_tx(path=path, transaction=transaction):
-#                 backend.raise_policy = RaisePolicy.RAISE_NOTHING
-#                 navigator.navigate_and_compare(ROOT_SCREENSHOT_PATH,
-#                                                test_name + f"/part{i}",
-#                                                instructions)
-#             assert client.get_async_response().status == Errors.SW_DENY
+    assert schnorr_verify(hash, public_key[1:33], der_sig)

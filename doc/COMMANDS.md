@@ -6,8 +6,11 @@
 | --- | --- | --- |
 | `GET_VERSION` | 0x03 | Get application version as `MAJOR`, `MINOR`, `PATCH` |
 | `GET_APP_NAME` | 0x04 | Get ASCII encoded application name |
-| `GET_PUBLIC_KEY` | 0x05 | Get public key given BIP32 path |
-| `SIGN_TX` | 0x06 | Sign transaction given BIP32 path and raw transaction |
+| `GET_PUBLIC_KEY` | 0x05 | Get public key |
+| `SIGN_EVENT` | 0x07 | Sign event (hash only) |
+| `ENCRYPT_DATA` | 0x08 | Encrypt data |
+| `DECRYPT_DATA` | 0x09 | Decrypt data |
+| `GET_RESPONSE` | 0xC0 | Get next response chunk |
 
 ## GET_VERSION
 
@@ -76,8 +79,8 @@
 | 0x6E00 | `SW_CLA_NOT_SUPPORTED` | Bad `CLA` used for this application |
 | 0xB000 | `SW_WRONG_RESPONSE_LENGTH` | Wrong response length (buffer size problem) |
 | 0xB002 | `SW_DISPLAY_ADDRESS_FAIL` | Address conversion to string failed |
-| 0xB004 | `SW_WRONG_TX_LENGTH` | Wrong raw transaction length |
-| 0xB006 | `SW_TX_HASH_FAIL` | Failed to compute hash digest of raw transaction |
+| 0xB004 | `SW_MESSAGE_TOO_LONG` | Maximum message size limit reached |
 | 0xB007 | `SW_BAD_STATE` | Security issue with bad state |
-| 0xB008 | `SW_SIGNATURE_FAIL` | Signature of raw transaction failed |
+| 0xB008 | `SW_SIGNATURE_FAIL` | Signature failed |
+| 0x6100 | `SW_OK_MORE_DATA_AVAILABLE` | More data available, use `GET_RESPONSE` command to get next bytes |
 | 0x9000 | `OK` | Success |

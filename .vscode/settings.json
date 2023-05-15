@@ -3,7 +3,7 @@
         "*.h": "c",
         "string": "c"
     },
-    "C_Cpp.clang_format_path": "/usr/bin/clang-format",
+    "C_Cpp.clang_format_path": "/usr/bin/clang-format-11",
     "editor.formatOnSave": true,
     "python.testing.pytestArgs": [
         "tests"

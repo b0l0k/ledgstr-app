@@ -100,7 +100,7 @@ int ui_display_address() {
     }
 
     memset(g_address, 0, sizeof(g_address));
-    uint8_t address[ADDRESS_LEN] = {0};
+    uint8_t address[ADDRESS_BECH32_LEN] = {0};
     if (!address_from_pubkey(G_context.pk_info.raw_public_key, address, sizeof(address))) {
         return io_send_sw(SW_DISPLAY_ADDRESS_FAIL);
     }
@@ -148,7 +148,7 @@ int ui_display_event() {
     }
 
     memset(g_event, 0, sizeof(g_event));
-    snprintf(g_event, sizeof(g_event), "0x%.*H", EVENT_LEN, G_context.event_info.m_hash);
+    snprintf(g_event, sizeof(g_event), "0x%.*H", EVENT_HASH_LEN, G_context.event_info.m_hash);
 
     g_validate_callback = &ui_action_validate_event;
 

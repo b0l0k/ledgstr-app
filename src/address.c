@@ -29,14 +29,6 @@
 
 #include "common/segwit_addr.h"
 
-void debug_write(char* buf) {
-    asm volatile(
-        "movs r0, #0x04\n"
-        "movs r1, %0\n"
-        "svc      0xab\n" ::"r"(buf)
-        : "r0", "r1");
-}
-
 static int convert_bits(uint8_t* out,
                         size_t* outlen,
                         int outbits,
@@ -66,18 +58,15 @@ static int convert_bits(uint8_t* out,
 }
 
 bool address_from_pubkey(const uint8_t public_key[static 64], uint8_t* out, size_t out_len) {
-    char address[ADDRESS_LEN * 4] = {0};
-    // cx_sha3_t keccak256;
+    char address[ADDRESS_BECH32_LEN] = {0};
 
-    if (out_len < ADDRESS_LEN) {
+    if (out_len < ADDRESS_BECH32_LEN) {
         return false;
     }
 
-    // cx_keccak_init(&keccak256, 256);
-    // cx_hash((cx_hash_t *) &keccak256, CX_LAST, public_key, 64, address, sizeof(address));
-
-    uint8_t data[ADDRESS_LEN * 2];
+    uint8_t data[ADDRESS_BECH32_LEN * 2];
     size_t datalen = 0;
+    // 32 = Only X
     if (convert_bits(data, &datalen, 5, public_key, 32, 8, 1) == 0) {
         return false;
     }

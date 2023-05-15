@@ -4,6 +4,8 @@
  * Status word for success.
  */
 #define SW_OK 0x9000
+
+#define SW_OK_MORE_DATA_AVAILABLE 0x6100
 /**
  * Status word for denied by user.
  */
@@ -35,11 +37,9 @@
 /**
  * Status word for wrong transaction length.
  */
-#define SW_WRONG_TX_LENGTH 0xB004
-/**
- * Status word for fail of transaction hash.
- */
-#define SW_TX_HASH_FAIL 0xB006
+#define SW_MESSAGE_TOO_LONG 0xB004
+
+#define SW_CONTENT_READING_FAIL 0xB004
 /**
  * Status word for bad state.
  */

@@ -49,8 +49,8 @@ def test_invalid_state(backend):
     # Disable raising when trying to unpack an error APDU
     backend.raise_policy = RaisePolicy.RAISE_NOTHING
     rapdu = backend.exchange(cla=CLA,
-                             ins=InsType.SIGN_EVENT,
-                             p1=P1.P1_START + 1, # Try to continue a flow instead of start a new one
+                             ins=InsType.ENCRYPT,
+                             p1=P1.P1_START + 1,  # Try to continue a flow instead of start a new one
                              p2=P2.P2_MORE,
-                             data=b"abcde") # data is not parsed in this case
+                             data=b"abcde")  # data is not parsed in this case
     assert rapdu.status == Errors.SW_BAD_STATE

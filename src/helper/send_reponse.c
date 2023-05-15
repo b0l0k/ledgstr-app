@@ -47,3 +47,39 @@ int helper_send_response_event() {
 
     return io_send_response(&(const buffer_t){.ptr = resp, .size = offset, .offset = 0}, SW_OK);
 }
+
+int io_send_framed_response(const buffer_t *rdata) {
+    if (G_context.state == STATE_IN_TRANSFER)
+        return -1;  // io_send_framed_response_continue must be used.
+
+    if (rdata == NULL || rdata->size - rdata->offset <= IO_APDU_BUFFER_SIZE - 2)
+        return io_send_response(rdata, SW_OK);
+
+    G_context.state = STATE_IN_TRANSFER;
+    G_context.in_transfer =
+        (const buffer_t){.ptr = rdata->ptr, .size = rdata->size, .offset = rdata->offset};
+
+    buffer_t frame = (const buffer_t){.ptr = G_context.in_transfer.ptr,
+                                      .size = IO_APDU_BUFFER_SIZE - 2,
+                                      .offset = G_context.in_transfer.offset};
+    G_context.in_transfer.offset += IO_APDU_BUFFER_SIZE - 2;
+
+    return io_send_response(&frame, SW_OK_MORE_DATA_AVAILABLE);
+}
+
+int io_send_framed_response_continue() {
+    if (G_context.state != STATE_IN_TRANSFER)
+        return -1;  // io_send_framed_response must be used before.
+
+    if (G_context.in_transfer.size - G_context.in_transfer.offset <= IO_APDU_BUFFER_SIZE - 2) {
+        return io_send_response(&G_context.in_transfer, SW_OK);
+    }
+
+    buffer_t frame = (const buffer_t){.ptr = G_context.in_transfer.ptr,
+                                      .size = IO_APDU_BUFFER_SIZE - 2,
+                                      .offset = G_context.in_transfer.offset};
+
+    G_context.in_transfer.offset += IO_APDU_BUFFER_SIZE - 2;
+
+    return io_send_response(&frame, SW_OK_MORE_DATA_AVAILABLE);
+}
