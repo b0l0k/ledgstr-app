@@ -47,7 +47,6 @@ typedef struct {
  */
 typedef enum {
     STATE_NONE,      /// No state
-    STATE_PARSED,    /// Transaction data parsed
     STATE_APPROVED,  /// Transaction data approved
     STATE_IN_TRANSFER
 } state_e;

@@ -55,7 +55,7 @@ static void ui_action_validate_event(bool choice) {
 }
 
 // Step with icon and text
-UX_STEP_NOCB(ux_display_confirm_addr_step, pn, {&C_icon_eye, "Confirm Address"});
+UX_STEP_NOCB(ux_display_confirm_addr_step, pn, {&C_icon_eye, "Verify Address"});
 
 // Step with title/text for address
 UX_STEP_NOCB(ux_display_address_step,
