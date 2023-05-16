@@ -36,7 +36,7 @@
 
 const uint32_t encdefault_path[] = {44 | 0x80000000, 1237 | 0x80000000, 0 | 0x80000000, 0, 0};
 
-int handler_encrypt(buffer_t *cdata, uint8_t chunk, bool more, bool display) {
+int handler_encrypt(buffer_t *cdata, uint8_t chunk, bool more) {
     if (chunk == 0) {  // first APDU, parse peer key
         explicit_bzero(&G_context, sizeof(G_context));
         G_context.req_type = CONFIRM_ENCRYPT;
@@ -155,113 +155,12 @@ int handler_encrypt(buffer_t *cdata, uint8_t chunk, bool more, bool display) {
 
             return io_send_framed_response(
                 &(const buffer_t){.ptr = resp, .size = offset, .offset = 0});
-
-            // uint8_t data_msg[128];
-            // memcpy(data_msg, G_context.encrypt_info.raw_content, 128);
-
-            // uint8_t out[128];
-            // explicit_bzero(out, sizeof(out));
-            // size_t out_len = sizeof(out);
-            // uint8_t iv[16];
-            // cx_trng_get_random_data(iv, sizeof(iv));
-            // err = cx_aes_iv_no_throw(&key,
-            //                          flag,
-            //                          G_context.encrypt_info.iv,
-            //                          16,
-            //                          data_msg,
-            //                          sizeof(data_msg),
-            //                          out,
-            //                          &out_len);
-
-            // explicit_bzero(key, sizeof(cx_aes_key_t));
-            // if (err != CX_OK) {
-            //     return -1;
-            // }
-
-            // uint8_t resp[2 + 128 + 16] = {0};
-            // size_t offset = 0;
-            // resp[offset++] = out_len;
-            // resp[offset++] = sizeof(G_context.encrypt_info.iv);
-            // memmove(resp + offset, out, out_len);
-            // offset += out_len;
-            // memmove(resp + offset, G_context.encrypt_info.iv, sizeof(G_context.encrypt_info.iv));
-            // offset += sizeof(G_context.encrypt_info.iv);
-
-            // return io_send_response(&(const buffer_t){.ptr = resp, .size = offset, .offset = 0},
-            //                         SW_OK);
         }
     }
     return 0;
-
-    // cx_err_t ret;
-    // uint8_t public_key_peer[65] = {0x04};
-    // uint8_t data_msg[128];
-    // uint8_t out_data_size = 0;
-
-    // if (cdata->size =< (UNCOMPRESSED_PUBLIC_KEY_LEN + sizeof(out_data_size) ) {
-    //     return io_send_sw(SW_WRONG_DATA_LENGTH);
-    // }
-
-    // explicit_bzero(data_msg, sizeof(data_msg));
-    // memcpy(public_key_peer + 1, cdata->ptr, 64);
-    // buffer_seek_set(cdata, 64);
-    // buffer_read_u8(cdata, &out_data_size);
-    // memcpy(data_msg, cdata->ptr + 65, out_data_size);
-
-    // cx_ecfp_private_key_t private_key = {0};
-    // uint8_t chain_code[32];
-    // int error = crypto_derive_private_key(&private_key,
-    //                                       chain_code,
-    //                                       encdefault_path,
-    //                                       sizeof(encdefault_path) /
-    //                                       sizeof(encdefault_path[0]));
-
-    // // return io_send_response(
-    // //     &(const buffer_t){.ptr = public_key_peer_uncompressed.W, .size = 65, .offset = 0},
-    // //     SW_OK);
-
-    // uint8_t secret[32];
-    // ret = cx_ecdh_no_throw(&private_key, CX_ECDH_X, public_key_peer, 65, secret, 32);
-    // explicit_bzero(&private_key, sizeof(private_key));
-    // if (ret != CX_OK) {
-    //     return -1;
-    // }
-
-    // cx_aes_key_t key;
-    // cx_err_t err = cx_aes_init_key_no_throw(secret, 32, &key);
-    // explicit_bzero(secret, 32);
-    // if (err != CX_OK) {
-    //     return -11;
-    // }
-
-    // uint8_t out[128];
-    // explicit_bzero(out, sizeof(out));
-    // size_t out_len = sizeof(out);
-    // int flag = CX_ENCRYPT | CX_PAD_NONE | CX_CHAIN_CBC;
-    // uint8_t iv[16];
-    // cx_trng_get_random_data(iv, sizeof(iv));
-    // cx_aes_iv_no_throw(&key, flag, iv, 16, data_msg, sizeof(data_msg), out, &out_len);
-
-    // explicit_bzero(&key, sizeof(key));
-    // if (err != CX_OK) {
-    //     return io_send_response(&(const buffer_t){.ptr = &err, .size = 4, .offset = 0},
-    //     SW_DENY);
-    // }
-
-    // uint8_t resp[2 + 128 + 16] = {0};
-    // size_t offset = 0;
-    // resp[offset++] = out_len;
-    // resp[offset++] = sizeof(iv);
-    // memmove(resp + offset, out, out_len);
-    // offset += out_len;
-    // memmove(resp + offset, iv, sizeof(iv));
-    // offset += sizeof(iv);
-
-    // return io_send_response(&(const buffer_t){.ptr = resp, .size = offset, .offset = 0},
-    // SW_OK);
 }
 
-int handler_decrypt(buffer_t *cdata, uint8_t chunk, bool more, bool display) {
+int handler_decrypt(buffer_t *cdata, uint8_t chunk, bool more) {
     if (chunk == 0) {  // first APDU, parse peer key
         explicit_bzero(&G_context, sizeof(G_context));
         G_context.req_type = CONFIRM_DECRYPT;
@@ -360,7 +259,7 @@ int handler_decrypt(buffer_t *cdata, uint8_t chunk, bool more, bool display) {
                                      G_context.encrypt_info.raw_content,
                                      &G_context.encrypt_info.raw_content_len);
 
-            // // Clean key from memory
+            // Clean key from memory
             explicit_bzero(&key, sizeof(key));
 
             if (err != CX_OK) {
