@@ -26,10 +26,7 @@
 #include "get_public_key.h"
 #include "../globals.h"
 #include "../types.h"
-#include "../io.h"
 #include "../sw.h"
-#include "../crypto.h"
-#include "../common/buffer.h"
 #include "../ui/display.h"
 #include "../ui/action/validate.h"
 

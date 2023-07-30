@@ -19,4 +19,5 @@ def check_signature_validity(public_key: bytes, signature: bytes, message: bytes
     )
     return pk.verify(signature=signature,
                      data=message,
-                     hashfunc=None)
+                     hashfunc=keccak_256,
+                     sigdecode=sigdecode_der)

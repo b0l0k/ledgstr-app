@@ -23,7 +23,6 @@
 #include "../constants.h"
 #include "../globals.h"
 #include "../sw.h"
-#include "common/buffer.h"
 
 int helper_send_response_pubkey() {
     uint8_t resp[1 + 1 + PUBKEY_LEN] = {0};
@@ -34,7 +33,7 @@ int helper_send_response_pubkey() {
     memmove(resp + offset, G_context.pk_info.raw_public_key, PUBKEY_LEN);
     offset += PUBKEY_LEN;
 
-    return io_send_response(&(const buffer_t){.ptr = resp, .size = offset, .offset = 0}, SW_OK);
+    return io_send_response_buffer(&(const buffer_t){.ptr = resp, .size = offset, .offset = 0}, SW_OK);
 }
 
 int helper_send_response_event() {
@@ -45,7 +44,7 @@ int helper_send_response_event() {
     memmove(resp + offset, G_context.event_info.signature, G_context.event_info.signature_len);
     offset += G_context.event_info.signature_len;
 
-    return io_send_response(&(const buffer_t){.ptr = resp, .size = offset, .offset = 0}, SW_OK);
+    return io_send_response_buffer(&(const buffer_t){.ptr = resp, .size = offset, .offset = 0}, SW_OK);
 }
 
 int io_send_framed_response(const buffer_t *rdata) {
@@ -53,7 +52,7 @@ int io_send_framed_response(const buffer_t *rdata) {
         return -1;  // io_send_framed_response_continue must be used.
 
     if (rdata == NULL || rdata->size - rdata->offset <= IO_APDU_BUFFER_SIZE - 2)
-        return io_send_response(rdata, SW_OK);
+        return io_send_response_buffer(rdata, SW_OK);
 
     G_context.state = STATE_IN_TRANSFER;
     G_context.in_transfer =
@@ -64,7 +63,7 @@ int io_send_framed_response(const buffer_t *rdata) {
                                       .offset = G_context.in_transfer.offset};
     G_context.in_transfer.offset += IO_APDU_BUFFER_SIZE - 2;
 
-    return io_send_response(&frame, SW_OK_MORE_DATA_AVAILABLE);
+    return io_send_response_buffer(&frame, SW_OK_MORE_DATA_AVAILABLE);
 }
 
 int io_send_framed_response_continue() {
@@ -72,7 +71,7 @@ int io_send_framed_response_continue() {
         return -1;  // io_send_framed_response must be used before.
 
     if (G_context.in_transfer.size - G_context.in_transfer.offset <= IO_APDU_BUFFER_SIZE - 2) {
-        return io_send_response(&G_context.in_transfer, SW_OK);
+        return io_send_response_buffer(&G_context.in_transfer, SW_OK);
     }
 
     buffer_t frame = (const buffer_t){.ptr = G_context.in_transfer.ptr,
@@ -81,5 +80,5 @@ int io_send_framed_response_continue() {
 
     G_context.in_transfer.offset += IO_APDU_BUFFER_SIZE - 2;
 
-    return io_send_response(&frame, SW_OK_MORE_DATA_AVAILABLE);
+    return io_send_response_buffer(&frame, SW_OK_MORE_DATA_AVAILABLE);
 }

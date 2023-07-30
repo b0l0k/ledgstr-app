@@ -4,7 +4,8 @@
 #include <stdbool.h>  // bool
 #include <stdint.h>   // uint*_t
 
+#include "buffer.h"
+
 #include "../types.h"
-#include "../common/buffer.h"
 
 int handler_sign_event(buffer_t *cdata, bool display);

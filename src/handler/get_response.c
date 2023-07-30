@@ -26,9 +26,7 @@
 #include "encrypt_data.h"
 #include "../globals.h"
 #include "../types.h"
-#include "../io.h"
 #include "../sw.h"
-#include "../common/buffer.h"
 #include "../helper/send_response.h"
 
 int handler_get_response() {

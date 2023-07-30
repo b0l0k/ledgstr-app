@@ -22,14 +22,14 @@
 
 #include "os.h"
 #include "cx.h"
+#include "io.h"
+#include "buffer.h"
+#include "crypto_helpers.h"
 
 #include "get_public_key.h"
 #include "../globals.h"
 #include "../types.h"
-#include "../io.h"
 #include "../sw.h"
-#include "../crypto.h"
-#include "../common/buffer.h"
 #include "../ui/display.h"
 #include "../helper/send_response.h"
 
@@ -40,22 +40,20 @@ int handler_get_public_key(bool display) {
     G_context.req_type = CONFIRM_ADDRESS;
     G_context.state = STATE_NONE;
 
-    cx_ecfp_private_key_t private_key = {0};
-    cx_ecfp_public_key_t public_key = {0};
     uint8_t chain_code[32];
+    uint8_t public_key[65];
 
-    // derive private key according to BIP32 path
-    int error = crypto_derive_private_key(&private_key,
-                                          chain_code,
-                                          pubdefault_path,
-                                          sizeof(pubdefault_path) / sizeof(pubdefault_path[0]));
-    if (error != 0) {
+    cx_err_t error = bip32_derive_get_pubkey_256(CX_CURVE_256K1,
+                                                 pubdefault_path,
+                                                 sizeof(pubdefault_path) / sizeof(pubdefault_path[0]),
+                                                 public_key,
+                                                 chain_code,
+                                                 CX_SHA512);
+
+    memmove(G_context.pk_info.raw_public_key, public_key + 1, 64);
+    if (error != CX_OK) {
         return io_send_sw(error);
     }
-    // generate corresponding public key
-    crypto_init_public_key(&private_key, &public_key, G_context.pk_info.raw_public_key);
-    // reset private key
-    explicit_bzero(&private_key, sizeof(private_key));
 
     if (display) {
         return ui_display_address();

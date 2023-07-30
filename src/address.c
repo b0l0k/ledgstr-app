@@ -25,37 +25,8 @@
 
 #include "address.h"
 
+#include "helper/bech32.h"
 #include "transaction/types.h"
-
-#include "common/segwit_addr.h"
-
-static int convert_bits(uint8_t* out,
-                        size_t* outlen,
-                        int outbits,
-                        const uint8_t* in,
-                        size_t inlen,
-                        int inbits,
-                        int pad) {
-    uint32_t val = 0;
-    int bits = 0;
-    uint32_t maxv = (((uint32_t) 1) << outbits) - 1;
-    while (inlen--) {
-        val = (val << inbits) | *(in++);
-        bits += inbits;
-        while (bits >= outbits) {
-            bits -= outbits;
-            out[(*outlen)++] = (val >> bits) & maxv;
-        }
-    }
-    if (pad) {
-        if (bits) {
-            out[(*outlen)++] = (val << (outbits - bits)) & maxv;
-        }
-    } else if (((val << (outbits - bits)) & maxv) || bits >= inbits) {
-        return 0;
-    }
-    return 1;
-}
 
 bool address_from_pubkey(const uint8_t public_key[static 64], uint8_t* out, size_t out_len) {
     char address[ADDRESS_BECH32_LEN] = {0};

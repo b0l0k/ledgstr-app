@@ -1,31 +1,4 @@
-// clang-format off
-
-/* Copyright (c) 2017, 2021 Pieter Wuille
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in
- * all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
- * THE SOFTWARE.
- */
-#include <assert.h>
-#include <stdlib.h>
-#include <stdint.h>
-#include <string.h>
-
-#include "segwit_addr.h"
+#include "bech32.h"
 
 static uint32_t bech32_polymod_step(uint32_t pre) {
     uint8_t b = pre >> 25;
@@ -40,7 +13,6 @@ static uint32_t bech32_polymod_step(uint32_t pre) {
 static uint32_t bech32_final_constant(bech32_encoding enc) {
     if (enc == BECH32_ENCODING_BECH32) return 1;
     if (enc == BECH32_ENCODING_BECH32M) return 0x2bc830a3;
-    assert(0);
     return 0; // suppress compiler warning on missing return value
 }
 
@@ -156,7 +128,7 @@ bech32_encoding bech32_decode(char* hrp, uint8_t *data, size_t *data_len, const 
     }
 }
 
-static int convert_bits(uint8_t* out, size_t* outlen, int outbits, const uint8_t* in, size_t inlen, int inbits, int pad) {
+int convert_bits(uint8_t* out, size_t* outlen, int outbits, const uint8_t* in, size_t inlen, int inbits, int pad) {
     uint32_t val = 0;
     int bits = 0;
     uint32_t maxv = (((uint32_t)1) << outbits) - 1;
@@ -175,38 +147,5 @@ static int convert_bits(uint8_t* out, size_t* outlen, int outbits, const uint8_t
     } else if (((val << (outbits - bits)) & maxv) || bits >= inbits) {
         return 0;
     }
-    return 1;
-}
-
-int segwit_addr_encode(char *output, const char *hrp, int witver, const uint8_t *witprog, size_t witprog_len) {
-    uint8_t data[65];
-    size_t datalen = 0;
-    bech32_encoding enc = BECH32_ENCODING_BECH32;
-    if (witver > 16) return 0;
-    if (witver == 0 && witprog_len != 20 && witprog_len != 32) return 0;
-    if (witprog_len < 2 || witprog_len > 40) return 0;
-    if (witver > 0) enc = BECH32_ENCODING_BECH32M;
-    data[0] = witver;
-    convert_bits(data + 1, &datalen, 5, witprog, witprog_len, 8, 1);
-    ++datalen;
-    return bech32_encode(output, hrp, data, datalen, enc);
-}
-
-int segwit_addr_decode(int* witver, uint8_t* witdata, size_t* witdata_len, const char* hrp, const char* addr) {
-    uint8_t data[84];
-    char hrp_actual[84];
-    size_t data_len;
-    bech32_encoding enc = bech32_decode(hrp_actual, data, &data_len, addr);
-    if (enc == BECH32_ENCODING_NONE) return 0;
-    if (data_len == 0 || data_len > 65) return 0;
-    if (strncmp(hrp, hrp_actual, 84) != 0) return 0;
-    if (data[0] > 16) return 0;
-    if (data[0] == 0 && enc != BECH32_ENCODING_BECH32) return 0;
-    if (data[0] > 0 && enc != BECH32_ENCODING_BECH32M) return 0;
-    *witdata_len = 0;
-    if (!convert_bits(witdata, witdata_len, 8, data + 1, data_len - 1, 5, 0)) return 0;
-    if (*witdata_len < 2 || *witdata_len > 40) return 0;
-    if (data[0] == 0 && *witdata_len != 20 && *witdata_len != 32) return 0;
-    *witver = data[0];
     return 1;
 }
