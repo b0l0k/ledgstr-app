@@ -1,5 +1,7 @@
 #pragma once
 
+#include "parser.h"
+
 #include "../types.h"
 
 /**
@@ -17,7 +19,7 @@
 /**
  * Parameter 1 for maximum APDU number.
  */
-#define P1_MAX 0x10
+#define P1_MAX 0x03
 
 /**
  * Dispatch APDU command received to the right handler.

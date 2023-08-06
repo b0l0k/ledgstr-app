@@ -25,6 +25,7 @@
 
 const uint32_t default_path[] = {44 | 0x80000000, 1237 | 0x80000000, 0 | 0x80000000, 0, 0};
 
+
 int crypto_derive_private_key(cx_ecfp_private_key_t *private_key,
                               uint8_t chain_code[static 32],
                               const uint32_t *bip32_path,
@@ -56,15 +57,6 @@ int crypto_derive_private_key(cx_ecfp_private_key_t *private_key,
     END_TRY;
 
     return error;
-}
-
-void crypto_init_public_key(cx_ecfp_private_key_t *private_key,
-                            cx_ecfp_public_key_t *public_key,
-                            uint8_t raw_public_key[static 64]) {
-    // generate corresponding public key
-    cx_ecfp_generate_pair(CX_CURVE_256K1, public_key, private_key, 1);
-
-    memmove(raw_public_key, public_key->W + 1, 64);
 }
 
 int crypto_sign_event(void) {

@@ -120,7 +120,7 @@ static void review_choice_event_hash(bool confirm) {
     if (confirm) {
         // display a status page and go back to main
         validate_event(true);
-        nbgl_useCaseStatus("TRANSACTION\nSIGNED", true, ui_menu_main);
+        nbgl_useCaseStatus("EVENT\nSIGNED", true, ui_menu_main);
     } else {
         ask_transaction_rejection_confirmation();
     }

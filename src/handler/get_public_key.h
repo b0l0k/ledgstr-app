@@ -4,10 +4,8 @@
 #include <stdbool.h>  // bool
 #include <stdint.h>   // uint*_t
 
-#include "../types.h"
-#include "../common/buffer.h"
+#include "buffer.h"
 
-/**
- * Handler for GET_PUBLIC_KEY command.
- */
+#include "../types.h"
+
 int handler_get_public_key(bool display);

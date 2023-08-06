@@ -4,6 +4,8 @@
 #include <stddef.h>   // size_t
 #include <stdbool.h>  // bool
 
+#include "helper/bech32.h"
+
 /**
  * Convert public key to address.
  *

@@ -18,20 +18,20 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+#include "buffer.h"
+#include "io.h"
+
 #include "dispatcher.h"
 #include "../constants.h"
 #include "../globals.h"
 #include "../types.h"
-#include "../io.h"
 #include "../sw.h"
-#include "../common/buffer.h"
 #include "../handler/get_version.h"
 #include "../handler/get_app_name.h"
 #include "../handler/get_public_key.h"
-#include "../handler/get_response.h"
-#include "../handler/sign_event.h"
 #include "../handler/encrypt_data.h"
-#include "../helper/send_response.h"
+#include "../handler/sign_event.h"
+#include "../handler/get_response.h"
 
 int apdu_dispatcher(const command_t *cmd) {
     if (cmd->cla != CLA) {
